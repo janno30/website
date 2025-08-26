@@ -18,7 +18,7 @@
   
   function handleDonate() {
     // You can replace this with your actual donation link
-    alert('Donation feature coming soon!');
+    window.open('https://ko-fi.com/janno', '_blank');
   }
   
   // Planet class for physics simulation
