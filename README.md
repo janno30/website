@@ -1,4 +1,4 @@
-# Ushie Portfolio
+# Janno Portfolio
 
 A personal portfolio website built with Svelte that matches the design from the provided image.
 
