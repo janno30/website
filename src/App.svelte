@@ -1,6 +1,7 @@
 <script>
   import { Github, MessageCircle, Heart } from 'lucide-svelte';
   import { onMount } from 'svelte';
+  import Comments from './components/Comments.svelte';
   
   let canvas;
   let ctx;
@@ -249,6 +250,9 @@
             <div class="handle">@janno30</div>
           </div>
         </div>
+
+        <!-- Comments Section -->
+        <Comments />
       </div>
     </div>
   </div>
