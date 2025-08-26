@@ -3,9 +3,9 @@ main = "functions/api/auth.js"
 compatibility_date = "2024-01-01"
 
 [vars]
-DISCORD_CLIENT_ID = "YOUR_DISCORD_CLIENT_ID"
-DISCORD_CLIENT_SECRET = "YOUR_DISCORD_CLIENT_SECRET"
-DISCORD_REDIRECT_URI = "https://your-domain.com/auth/callback"
+DISCORD_CLIENT_ID = "1409762260771012629"
+DISCORD_CLIENT_SECRET = "rBArojdVSF2Dz6txO47YAAFXg07AZWOX"
+DISCORD_REDIRECT_URI = "https://janno.pages.dev/auth/callback"
 
 [[env.production]]
 name = "janno-portfolio-prod"

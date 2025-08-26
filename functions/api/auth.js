@@ -1,30 +1,31 @@
 // Cloudflare Worker for Discord OAuth2 authentication
-export async function onRequest(context) {
-  const { request } = context;
-  const url = new URL(request.url);
-  
-  // CORS headers
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
-  
-  // Handle preflight requests
-  if (request.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    
+    // CORS headers
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    };
+    
+    // Handle preflight requests
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { headers: corsHeaders });
+    }
+    
+    const path = url.pathname;
+    
+    if (path === '/api/auth/discord/callback') {
+      return handleDiscordCallback(request, corsHeaders, env);
+    }
+    
+    return new Response('Not Found', { status: 404, headers: corsHeaders });
   }
-  
-  const path = url.pathname;
-  
-  if (path === '/api/auth/discord/callback') {
-    return handleDiscordCallback(request, corsHeaders);
-  }
-  
-  return new Response('Not Found', { status: 404, headers: corsHeaders });
-}
+};
 
-async function handleDiscordCallback(request, corsHeaders) {
+async function handleDiscordCallback(request, corsHeaders, env) {
   try {
     const url = new URL(request.url);
     const code = url.searchParams.get('code');
@@ -46,11 +47,11 @@ async function handleDiscordCallback(request, corsHeaders) {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
-        client_id: DISCORD_CLIENT_ID,
-        client_secret: DISCORD_CLIENT_SECRET,
+        client_id: env.DISCORD_CLIENT_ID,
+        client_secret: env.DISCORD_CLIENT_SECRET,
         grant_type: 'authorization_code',
         code: code,
-        redirect_uri: DISCORD_REDIRECT_URI,
+        redirect_uri: env.DISCORD_REDIRECT_URI,
       }),
     });
     
