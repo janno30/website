@@ -2,6 +2,7 @@
   import { Github, MessageCircle, Heart } from 'lucide-svelte';
   import { onMount } from 'svelte';
   import Comments from './components/Comments.svelte';
+  import FunCharacter from './components/FunCharacter.svelte';
   
   let canvas;
   let ctx;
@@ -31,34 +32,64 @@
       this.color = color;
       this.velocityX = velocityX;
       this.velocityY = velocityY;
-      this.gravity = 0.1;
-      this.friction = 0.99;
+      this.friction = 0.995;
+      // Treat mass proportional to area for nicer behavior
+      this.mass = Math.PI * radius * radius;
+      // Limit top speed to keep simulation stable
+      this.maxSpeed = 6;
+      // Trail of previous positions for a nice motion effect
+      this.trail = [];
+      this.maxTrail = 25;
     }
     
     update() {
       this.x += this.velocityX;
       this.y += this.velocityY;
       
-      // Apply gravity
-      this.velocityY += this.gravity;
-      
       // Apply friction
       this.velocityX *= this.friction;
       this.velocityY *= this.friction;
+      // Clamp speed
+      const speed = Math.hypot(this.velocityX, this.velocityY);
+      if (speed > this.maxSpeed) {
+        const scale = this.maxSpeed / speed;
+        this.velocityX *= scale;
+        this.velocityY *= scale;
+      }
       
       // Bounce off walls
+      const wallRestitution = 0.9;
       if (this.x - this.radius <= 0 || this.x + this.radius >= canvas.width) {
-        this.velocityX *= -0.8;
+        this.velocityX *= -wallRestitution;
         this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
       }
       
       if (this.y - this.radius <= 0 || this.y + this.radius >= canvas.height) {
-        this.velocityY *= -0.8;
+        this.velocityY *= -wallRestitution;
         this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
+      }
+
+      // Update trail
+      this.trail.push({ x: this.x, y: this.y });
+      if (this.trail.length > this.maxTrail) {
+        this.trail.shift();
       }
     }
     
     draw() {
+      // Draw trail first (fading)
+      for (let i = 0; i < this.trail.length; i++) {
+        const p = this.trail[i];
+        const t = i / this.trail.length;
+        ctx.save();
+        ctx.globalAlpha = t * 0.5;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, Math.max(1, this.radius * 0.4 * t), 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.restore();
+      }
+
       ctx.beginPath();
       ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
       ctx.fillStyle = this.color;
@@ -118,7 +149,75 @@
   function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Update and draw planets
+    // N-body gravity among all planets
+    const gravitationalConstant = 0.02; // tune strength
+    const ax = new Array(planets.length).fill(0);
+    const ay = new Array(planets.length).fill(0);
+    for (let i = 0; i < planets.length; i++) {
+      for (let j = i + 1; j < planets.length; j++) {
+        const pi = planets[i];
+        const pj = planets[j];
+        let dx = pj.x - pi.x;
+        let dy = pj.y - pi.y;
+        const distSq = dx * dx + dy * dy;
+        const minDist = pi.radius + pj.radius;
+        const softening = 100; // avoid singularity and reduce jitter at close range
+        const invDist = 1 / Math.sqrt(distSq + softening);
+        dx *= invDist;
+        dy *= invDist;
+        const force = gravitationalConstant * (pi.mass * pj.mass) * invDist * invDist; // ~ 1/r^2
+        const fax = force * dx;
+        const fay = force * dy;
+        ax[i] += fax / pi.mass;
+        ay[i] += fay / pi.mass;
+        ax[j] -= fax / pj.mass;
+        ay[j] -= fay / pj.mass;
+      }
+    }
+    // Integrate accelerations into velocities
+    for (let i = 0; i < planets.length; i++) {
+      planets[i].velocityX += ax[i];
+      planets[i].velocityY += ay[i];
+    }
+    
+    // Resolve planet-planet collisions (elastic, along collision normal)
+    for (let i = 0; i < planets.length; i++) {
+      for (let j = i + 1; j < planets.length; j++) {
+        const a = planets[i];
+        const b = planets[j];
+        let nx = b.x - a.x;
+        let ny = b.y - a.y;
+        const dist = Math.sqrt(nx * nx + ny * ny) || 0.0001;
+        const minDist = a.radius + b.radius;
+        if (dist < minDist) {
+          // Normalize
+          nx /= dist;
+          ny /= dist;
+          // Positional correction to separate overlap
+          const overlap = (minDist - dist) * 0.5;
+          a.x -= nx * overlap;
+          a.y -= ny * overlap;
+          b.x += nx * overlap;
+          b.y += ny * overlap;
+          // Relative velocity along normal
+          const rvx = b.velocityX - a.velocityX;
+          const rvy = b.velocityY - a.velocityY;
+          const velAlongNormal = rvx * nx + rvy * ny;
+          if (velAlongNormal < 0) {
+            const restitution = 0.9; // near-elastic
+            const impulseMag = -(1 + restitution) * velAlongNormal / (1 / a.mass + 1 / b.mass);
+            const impX = impulseMag * nx;
+            const impY = impulseMag * ny;
+            a.velocityX -= impX / a.mass;
+            a.velocityY -= impY / a.mass;
+            b.velocityX += impX / b.mass;
+            b.velocityY += impY / b.mass;
+          }
+        }
+      }
+    }
+    
+    // Update kinematics and draw planets
     planets.forEach(planet => {
       planet.update();
       planet.draw();
@@ -179,7 +278,7 @@
 <main>
   <div class="container">
     <div class="content">
-      <!-- Left section with illustration -->
+      <!-- Left section with illustration + fun character -->
       <div class="illustration-section">
         <div class="illustration">
           <div class="character">
@@ -209,6 +308,9 @@
               <div class="tie"></div>
               <div class="hand"></div>
             </div>
+          </div>
+          <div class="funchar-wrap">
+            <FunCharacter />
           </div>
         </div>
       </div>
@@ -332,6 +434,12 @@
     justify-content: center;
     backdrop-filter: blur(5px);
     border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .funchar-wrap {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
   }
 
   .character {
