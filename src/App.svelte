@@ -3,6 +3,9 @@
   import { onMount } from 'svelte';
   import Comments from './components/Comments.svelte';
   import FunCharacter from './components/FunCharacter.svelte';
+  import AuthCallback from './components/AuthCallback.svelte';
+  
+  const isAuthCallback = typeof window !== 'undefined' && window.location.pathname.startsWith('/auth/callback');
   
   let canvas;
   let ctx;
@@ -273,6 +276,7 @@
   });
 </script>
 
+{#if !isAuthCallback}
 <canvas bind:this={canvas} class="background-canvas"></canvas>
 
 <main>
@@ -359,6 +363,9 @@
     </div>
   </div>
 </main>
+{:else}
+  <AuthCallback />
+{/if}
 
 <style>
   * {

@@ -23,37 +23,29 @@
     }
     
     try {
-      // In a real application, you would send this code to your backend
-      // For now, we'll simulate the process with a mock user
-      await simulateAuth(code);
+      await exchangeCode(code);
     } catch (err) {
       status = 'error';
       message = 'Authentication failed. Please try again.';
     }
   });
   
-  async function simulateAuth(code) {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Mock user data (in real app, this would come from Discord API)
-    const mockUser = {
-      id: '123456789',
-      username: 'JannoUser',
-      discriminator: '1234',
-      avatar: null
-    };
-    
-    // Store user data
-    localStorage.setItem('discord-user', JSON.stringify(mockUser));
-    
+  async function exchangeCode(code) {
+    const apiBase = window.location.origin; // Pages Functions mounted at same origin
+    const resp = await fetch(`${apiBase}/api/auth/discord/callback?code=${encodeURIComponent(code)}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data?.user) {
+      throw new Error('auth_failed');
+    }
+    localStorage.setItem('discord-user', JSON.stringify(data.user));
     status = 'success';
     message = 'Authentication successful! Redirecting...';
-    
-    // Redirect back to main page
     setTimeout(() => {
       window.location.href = '/';
-    }, 1500);
+    }, 800);
   }
 </script>
 
