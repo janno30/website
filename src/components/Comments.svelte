@@ -3,8 +3,8 @@
   import { MessageCircle, Send, LogIn, LogOut, User, Clock } from 'lucide-svelte';
   
   // Discord OAuth2 configuration
-  const DISCORD_CLIENT_ID = '1409762260771012629'; // You'll need to replace this
-  const DISCORD_REDIRECT_URI = window.location.origin + '/auth/callback';
+  const DISCORD_CLIENT_ID = '1409762260771012629';
+  const DISCORD_REDIRECT_URI = 'https://janno.pages.dev/auth/callback';
   const DISCORD_SCOPE = 'identify';
   
   let comments = [];
